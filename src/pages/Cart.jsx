@@ -15,9 +15,75 @@ export default function Cart() {
     phone: '',
     address: '',
     receiptFile: null,
-    receiptPreview: null
+    receiptPreview: null,
+    paymentMethod: 'card', // 'card' yoki 'cash'
+    locationUrl: ''
   });
   const [sending, setSending] = useState(false);
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  const handleGetLocation = async () => {
+    if (!navigator.geolocation) {
+      alert("Brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi. Iltimos, manzilni qo'lda kiriting.");
+      return;
+    }
+
+    // Check permission state first if supported
+    if (navigator.permissions) {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        if (permission.state === 'denied') {
+          alert(
+            "🚫 Joylashuvga ruxsat bloklangan.\n\n" +
+            "Ruxsatni yoqish uchun:\n" +
+            "1. Manzil satridagi 🔒 yoki ⚙️ belgisini bosing\n" +
+            "2. 'Joylashuv' yoki 'Location' ni toping\n" +
+            "3. 'Ruxsat berish' / 'Allow' ni tanlang\n" +
+            "4. Sahifani yangilang va qayta urinib ko'ring."
+          );
+          return;
+        }
+      } catch (e) {
+        // permissions API not supported — continue anyway
+      }
+    }
+
+    setLoadingLocation(true);
+
+    const timeoutId = setTimeout(() => {
+      setLoadingLocation(false);
+      alert("⏱ Joylashuvni aniqlash vaqti tugadi.\n\nBrauzeringizda joylashuv ruxsatini tekshiring va qayta urinib ko'ring.");
+    }, 12000);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        clearTimeout(timeoutId);
+        const { latitude, longitude } = position.coords;
+        const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        setOrderDetails(prev => ({
+          ...prev,
+          locationUrl: url,
+          address: prev.address || "📍 Joylashuv geolokatsiya orqali aniqlandi"
+        }));
+        setLoadingLocation(false);
+      },
+      (error) => {
+        clearTimeout(timeoutId);
+        setLoadingLocation(false);
+        let errorMsg = "Joylashuvni aniqlashda xatolik yuz berdi.";
+        if (error.code === 1) {
+          errorMsg = "🚫 Joylashuvga ruxsat berilmadi.\n\nBrauzer sozlamalarida joylashuv ruxsatini yoqing.";
+        } else if (error.code === 2) {
+          errorMsg = "📡 Joylashuv ma'lumotlari mavjud emas. Internet aloqasini tekshiring.";
+        } else if (error.code === 3) {
+          errorMsg = "⏱ Vaqt tugadi. Yana bir bor urinib ko'ring.";
+        }
+        alert(errorMsg);
+      },
+      { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 }
+    );
+  };
+
 
   const calculateTotal = () => {
     return cart.reduce((total, item) => {
@@ -48,7 +114,11 @@ export default function Cart() {
     let message = `🛒 *YANGI BUYURTMA!*\n\n`;
     message += `👤 *Mijoz:* ${orderDetails.name}\n`;
     message += `📞 *Tel:* ${orderDetails.phone}\n`;
-    message += `📍 *Manzil:* ${orderDetails.address}\n\n`;
+    message += `📍 *Manzil:* ${orderDetails.address}\n`;
+    if (orderDetails.locationUrl) {
+      message += `🗺️ *Geolokatsiya:* [Google Maps orqali ko'rish](${orderDetails.locationUrl})\n`;
+    }
+    message += `💳 *To'lov turi:* ${orderDetails.paymentMethod === 'card' ? 'Karta orqali' : 'Naqd pul (Botga bildirildi)'}\n\n`;
     message += `🍕 *Mahsulotlar:*\n`;
     
     cart.forEach((item, index) => {
@@ -64,7 +134,7 @@ export default function Cart() {
       formData.append('parse_mode', 'Markdown');
       
       let response;
-      if (orderDetails.receiptFile) {
+      if (orderDetails.paymentMethod === 'card' && orderDetails.receiptFile) {
         formData.append('photo', orderDetails.receiptFile);
         response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
           method: 'POST',
@@ -197,7 +267,19 @@ export default function Cart() {
                         />
                       </div>
                       <div className="mb-4">
-                        <label className="form-label d-flex align-items-center gap-2"><MapPin size={18} /> Yetkazib berish manzili (Location)</label>
+                        <label className="form-label d-flex align-items-center justify-content-between gap-2 mb-2">
+                          <div className="d-flex align-items-center gap-2"><MapPin size={18} /> Yetkazib berish manzili</div>
+                          <button 
+                            type="button" 
+                            className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                            onClick={handleGetLocation}
+                            disabled={loadingLocation}
+                            style={{ fontSize: '0.8rem', borderRadius: '15px' }}
+                          >
+                            {loadingLocation ? <Loader2 size={12} className="animate-spin" /> : <MapPin size={12} />}
+                            {orderDetails.locationUrl ? "Joylashuv yangilandi" : "Aniq joylashuvni aniqlash"}
+                          </button>
+                        </label>
                         <textarea 
                           className="form-control" 
                           rows="3" 
@@ -206,6 +288,11 @@ export default function Cart() {
                           value={orderDetails.address}
                           onChange={(e) => setOrderDetails({...orderDetails, address: e.target.value})}
                         />
+                        {orderDetails.locationUrl && (
+                          <div className="mt-2 small text-success d-flex align-items-center gap-1">
+                            <CheckCircle size={14} /> Geolokatsiya muvaffaqiyatli aniqlandi!
+                          </div>
+                        )}
                       </div>
                       <div className="d-flex gap-3">
                         <button type="button" className="btn btn-outline-secondary w-100" onClick={() => setCheckoutStep(null)}>Savatga qaytish</button>
@@ -219,27 +306,55 @@ export default function Cart() {
                   <div className="card-body p-4 text-center">
                     <CreditCard size={48} className="text-danger mb-3" />
                     <h5 className="mb-3">To'lov Ma'lumotlari</h5>
-                    <div className="bg-light p-3 rounded mb-4">
-                      <p className="mb-1 text-muted">Karta raqami (Uzcard/Humo):</p>
-                      <h4 className="fw-bold text-dark">8600 1234 5678 9012</h4>
-                      <p className="small text-muted mb-0">Mijoz: GoPizza Admin</p>
-                    </div>
-                    
-                    <div className="mb-4 text-start">
-                      <label className="form-label d-flex align-items-center gap-2 mb-2">
-                        <Upload size={18} /> To'lov chekini (skrinshot) yuklang
-                      </label>
-                      <input type="file" className="form-control" accept="image/*" onChange={handleFileChange} required />
-                      {orderDetails.receiptPreview && (
-                        <div className="mt-3 text-center">
-                          <img src={orderDetails.receiptPreview} alt="Receipt" style={{ maxWidth: '200px', borderRadius: '10px', border: '1px solid #ddd' }} />
-                        </div>
-                      )}
+                    <div className="d-flex justify-content-center gap-3 mb-4">
+                      <button 
+                        type="button" 
+                        className={`btn px-4 py-2 ${orderDetails.paymentMethod === 'card' ? 'btn-danger' : 'btn-outline-danger'}`}
+                        style={{ borderRadius: '25px' }}
+                        onClick={() => setOrderDetails({...orderDetails, paymentMethod: 'card'})}
+                      >
+                        <CreditCard size={18} className="me-2" /> Karta orqali
+                      </button>
+                      <button 
+                        type="button" 
+                        className={`btn px-4 py-2 ${orderDetails.paymentMethod === 'cash' ? 'btn-danger' : 'btn-outline-danger'}`}
+                        style={{ borderRadius: '25px' }}
+                        onClick={() => setOrderDetails({...orderDetails, paymentMethod: 'cash'})}
+                      >
+                        <Send size={18} className="me-2" /> Naqd pul
+                      </button>
                     </div>
 
-                    <div className="alert alert-warning small mb-4">
-                      To'lov chekini yuborganingizdan so'ng buyurtma tasdiqlanadi.
-                    </div>
+                    {orderDetails.paymentMethod === 'card' ? (
+                      <>
+                        <div className="bg-light p-3 rounded mb-4">
+                          <p className="mb-1 text-muted">Karta raqami (Uzcard/Humo):</p>
+                          <h4 className="fw-bold text-dark">8600 1234 5678 9012</h4>
+                          <p className="small text-muted mb-0">Mijoz: GoPizza Admin</p>
+                        </div>
+                        
+                        <div className="mb-4 text-start">
+                          <label className="form-label d-flex align-items-center gap-2 mb-2">
+                            <Upload size={18} /> To'lov chekini (skrinshot) yuklang
+                          </label>
+                          <input type="file" className="form-control" accept="image/*" onChange={handleFileChange} required={orderDetails.paymentMethod === 'card'} />
+                          {orderDetails.receiptPreview && (
+                            <div className="mt-3 text-center">
+                              <img src={orderDetails.receiptPreview} alt="Receipt" style={{ maxWidth: '200px', borderRadius: '10px', border: '1px solid #ddd' }} />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="alert alert-warning small mb-4">
+                          To'lov chekini yuborganingizdan so'ng buyurtma tasdiqlanadi.
+                        </div>
+                      </>
+                    ) : (
+                      <div className="bg-light p-4 rounded mb-4">
+                        <p className="mb-0">Naqd pul orqali to'lovni kurerga yoki restoranda amalga oshirishingiz mumkin.</p>
+                        <p className="fw-bold mt-2 text-danger">Hech qanday rasm yuklash shart emas.</p>
+                      </div>
+                    )}
 
                     <div className="d-flex gap-3">
                       <button type="button" className="btn btn-outline-secondary w-100" onClick={() => setCheckoutStep('info')} disabled={sending}>Orqaga</button>
@@ -247,7 +362,7 @@ export default function Cart() {
                         type="button" 
                         className="btn btn-danger w-100 d-flex align-items-center justify-content-center gap-2" 
                         onClick={sendOrderToTelegram}
-                        disabled={sending || !orderDetails.receiptFile}
+                        disabled={sending || (orderDetails.paymentMethod === 'card' && !orderDetails.receiptFile)}
                       >
                         {sending ? <><Loader2 className="animate-spin" size={18} /> Yuborilmoqda...</> : <><Send size={18} /> Buyurtma Berish</>}
                       </button>
