@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Loader2 } from 'lucide-react';
+import { staticMenuData } from '../data/menuData';
 
 export default function Menu() {
   const [menuItems, setMenuItems] = useState([]);
@@ -9,22 +10,37 @@ export default function Menu() {
 
   useEffect(() => {
     const fetchMenu = () => {
+      // Avval localStorage-dan o'qiymiz, bo'sh bo'lsa — static fayldan
       const saved = localStorage.getItem('gopizza_menu');
+      let rawItems = [];
+
       if (saved) {
-        const items = JSON.parse(saved).map(item => {
-          if (item.variants && item.variants.length > 0) {
-            return {
-              ...item,
-              selectedSize: item.variants[0].size,
-              selectedPrice: item.variants[0].price
-            };
-          }
-          return item;
-        });
-        setMenuItems(items);
+        try {
+          const parsed = JSON.parse(saved);
+          rawItems = parsed && parsed.length > 0 ? parsed : staticMenuData;
+        } catch {
+          rawItems = staticMenuData;
+        }
       } else {
-        setMenuItems([]);
+        // Hosting yoki yangi brauzerda: localStorage bo'sh — static fayldan yuklaymiz
+        rawItems = staticMenuData;
+        // Static ma'lumotni localStorage-ga ham yozib qo'yamiz (keyingi o'qishlar tezroq bo'lsin)
+        try {
+          localStorage.setItem('gopizza_menu', JSON.stringify(staticMenuData));
+        } catch {}
       }
+
+      const items = rawItems.map(item => {
+        if (item.variants && item.variants.length > 0) {
+          return {
+            ...item,
+            selectedSize: item.variants[0].size,
+            selectedPrice: item.variants[0].price
+          };
+        }
+        return item;
+      });
+      setMenuItems(items);
       setLoading(false);
     };
     fetchMenu();

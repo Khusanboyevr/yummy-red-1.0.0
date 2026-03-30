@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit, Trash2, Search, X, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Loader2, Download, RefreshCw } from 'lucide-react';
+import { staticMenuData } from '../data/menuData';
 
 export default function AdminDashboard() {
   const [items, setItems] = useState([]);
@@ -191,6 +192,41 @@ export default function AdminDashboard() {
     }
   };
 
+  // Menyuni JS fayl sifatida yuklab olish (developer src/data/menuData.js ga qo'yadi)
+  const handleExportToFile = () => {
+    const savedMenu = localStorage.getItem('gopizza_menu');
+    const menuList = savedMenu ? JSON.parse(savedMenu) : staticMenuData;
+    
+    const fileContent = `// =====================================================
+// MUHIM: Bu fayl admin panel orqali eksport qilingan.
+// Bu faylni src/data/menuData.js ga qo'ying.
+// Eksport vaqti: ${new Date().toLocaleString('uz-UZ')}
+// =====================================================
+
+export const staticMenuData = ${JSON.stringify(menuList, null, 2)};
+`;
+    
+    const blob = new Blob([fileContent], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'menuData.js';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert(`✅ menuData.js yuklab olindi!\n\nBu faylni:\nsrc/data/menuData.js\nga qo'ying va saytni qayta deploy qiling.`);
+  };
+
+  // Static ma'lumotlarni qayta yuklash (localStorage-ni statik fayl bilan yangilash)
+  const handleReloadStatic = () => {
+    if (window.confirm('Statik menyu ma\'lumotlarini qayta yuklashni xohlaysizmi? Hozirgi menyu o\'chib ketadi!')) {
+      localStorage.setItem('gopizza_menu', JSON.stringify(staticMenuData));
+      setItems(staticMenuData);
+      alert('✅ Statik menyu ma\'lumotlari muvaffaqiyatli qayta yuklandi!');
+    }
+  };
+
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -198,9 +234,23 @@ export default function AdminDashboard() {
   return (
     <section className="section mt-5 pt-5">
       <div className="container">
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
           <h2>Menyu Boshqaruvi</h2>
-          <div className="d-flex gap-2">
+          <div className="d-flex gap-2 flex-wrap">
+            <button 
+              className="btn btn-outline-success d-flex align-items-center gap-2" 
+              onClick={handleExportToFile}
+              title="Menyuni JS fayl sifatida yuklab oling va src/data/menuData.js ga qo'ying"
+            >
+              <Download size={16} /> Faylga Saqlash
+            </button>
+            <button 
+              className="btn btn-outline-warning d-flex align-items-center gap-2" 
+              onClick={handleReloadStatic}
+              title="Statik menyu ma'lumotlarini qayta yuklash"
+            >
+              <RefreshCw size={16} /> Statikni Yuklash
+            </button>
             <button className="btn btn-outline-danger" onClick={logout}>Chiqish</button>
             <button className="btn btn-danger d-flex align-items-center gap-2" onClick={() => handleOpenModal()}>
               <Plus size={18} /> Yangi Qo'shish
@@ -221,6 +271,7 @@ export default function AdminDashboard() {
 
         <div className="alert alert-info py-2 small mb-4">
           <Plus size={14} className="me-1" /> Pizza yoki Kebab kabi taomlar uchun bir nechta o'lcham va narx qo'shishingiz mumkin.
+          <br/><strong>💾 Hosting uchun:</strong> Menyu tayyor bo'lgach <strong>"Faylga Saqlash"</strong> tugmasini bosing → yuklab olingan <code>menuData.js</code> faylini <code>src/data/</code> papkasiga qo'ying → saytni qayta deploy qiling.
         </div>
 
         {loading ? (
