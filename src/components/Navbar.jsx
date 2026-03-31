@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const { cartCount } = useCart();
-  const { admin, logout } = useAuth();
+  const { admin, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -84,11 +84,15 @@ export default function Navbar() {
             <div className="d-none d-sm-block">
               {admin ? (
                 <button className="btn-getstarted" onClick={() => { logout(); navigate('/'); }}>
-                  Chiqish
+                  Admin Chiqish
                 </button>
+              ) : user ? (
+                <Link className="btn-getstarted" to="/account">
+                  Hisobim
+                </Link>
               ) : (
-                <Link className="btn-getstarted" to="/contact">
-                  Stol Band Qilish
+                <Link className="btn-getstarted" to="/login">
+                  Kirish
                 </Link>
               )}
             </div>
@@ -191,11 +195,15 @@ export default function Navbar() {
               className="btn-getstarted w-100"
               onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
             >
-              Chiqish
+              Admin Chiqish
             </button>
+          ) : user ? (
+            <Link className="btn-getstarted d-block text-center" to="/account" onClick={() => setMobileOpen(false)}>
+              Hisobim
+            </Link>
           ) : (
-            <Link className="btn-getstarted d-block text-center" to="/contact">
-              Stol Band Qilish
+            <Link className="btn-getstarted d-block text-center" to="/login" onClick={() => setMobileOpen(false)}>
+              Kirish
             </Link>
           )}
         </div>

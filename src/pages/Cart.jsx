@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import {
   Trash2,
@@ -25,10 +26,11 @@ export default function Cart() {
     updateQuantity,
     clearCart,
   } = useCart();
+  const { user, updateUserProfile } = useAuth();
   const [checkoutStep, setCheckoutStep] = useState(null); // null, 'info', 'payment', 'loading', 'success'
   const [orderDetails, setOrderDetails] = useState({
-    name: "",
-    phone: "",
+    name: user ? user.name : "",
+    phone: user ? user.phone : "+998",
     address: "",
     receiptFile: null,
     receiptPreview: null,
@@ -187,6 +189,11 @@ export default function Cart() {
         throw new Error(
           result.description || "Telegramga yuborishda noma'lum xatolik",
         );
+      }
+
+      // Profilda manzilni saqlash
+      if (user) {
+        updateUserProfile(orderDetails.locationUrl, orderDetails.address);
       }
 
       setCheckoutStep("success");
@@ -375,7 +382,10 @@ export default function Cart() {
                           required
                           value={orderDetails.phone}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9+]/g, "");
+                            let val = e.target.value;
+                            if (!val.startsWith("+998")) {
+                              val = "+998" + val.replace(/\D/g, "");
+                            }
                             setOrderDetails({ ...orderDetails, phone: val });
                           }}
                         />

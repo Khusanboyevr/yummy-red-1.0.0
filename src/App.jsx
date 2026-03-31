@@ -13,6 +13,8 @@ import { Navigate } from 'react-router-dom';
 import Cart from './pages/Cart';
 import Combos from './pages/Combos';
 import { CartProvider } from './context/CartContext';
+import UserAuth from './pages/UserAuth';
+import Account from './pages/Account';
 
 const ProtectedRoute = ({ children }) => {
   const { admin, loading } = useAuth();
@@ -34,6 +36,8 @@ function App() {
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/login" element={<UserAuth />} />
+              <Route path="/account" element={<Account />} />
               <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/admin" element={
                 <ProtectedRoute>

@@ -8,6 +8,7 @@ const CHAT_ID = "248765829";
 export default function Contact() {
   const bookingFormRef = useRef();
   const [bookingStatus, setBookingStatus] = useState('');
+  const [phone, setPhone] = useState('+998');
 
   const sendBookingEmail = async (e) => {
     e.preventDefault();
@@ -85,7 +86,22 @@ export default function Contact() {
                     <input type="text" name="name" className="form-control rounded-3" id="name" placeholder="Ismingiz" required />
                   </div>
                   <div className="col-lg-4 col-md-6">
-                    <input type="text" className="form-control rounded-3" name="phone" id="phone" placeholder="Telefon Raqamingiz" required />
+                    <input
+                      type="text"
+                      className="form-control rounded-3"
+                      name="phone"
+                      id="phone"
+                      placeholder="Telefon Raqamingiz"
+                      required
+                      value={phone}
+                      onChange={(e) => {
+                        let val = e.target.value;
+                        if (!val.startsWith("+998")) {
+                          val = "+998" + val.replace(/\D/g, "");
+                        }
+                        setPhone(val);
+                      }}
+                    />
                   </div>
                   <div className="col-lg-4 col-md-6">
                     <input type="date" name="date" className="form-control rounded-3" id="date" required />

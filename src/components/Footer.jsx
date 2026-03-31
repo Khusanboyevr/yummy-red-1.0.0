@@ -1,5 +1,5 @@
 import { MapPin, Phone, Clock } from 'lucide-react';
-import { FaTwitter, FaFacebook, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { FaFacebook, FaInstagram, FaTelegram } from 'react-icons/fa';
 
 export default function Footer() {
   return (
@@ -40,10 +40,9 @@ export default function Footer() {
           <div className="col-lg-3 col-md-6">
             <h4>Bizni Kuzatib Boring</h4>
             <div className="social-links d-flex gap-2">
-              <a href="#" className="twitter d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaTwitter size={18} /></a>
-              <a href="#" className="facebook d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaFacebook size={18} /></a>
-              <a href="#" className="instagram d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaInstagram size={18} /></a>
-              <a href="#" className="linkedin d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaLinkedin size={18} /></a>
+              <a href="https://t.me/gopizza_kanal" target="_blank" rel="noopener noreferrer" className="telegram d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaTelegram size={18} /></a>
+              <a href="https://www.facebook.com/share/1AS8mK5LeW" target="_blank" rel="noopener noreferrer" className="facebook d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaFacebook size={18} /></a>
+              <a href="https://www.instagram.com/gopizza.uz?utm_source=qr&igsh=dzY0MTZya3A0ODY3" target="_blank" rel="noopener noreferrer" className="instagram d-flex align-items-center justify-content-center border rounded-circle p-2 text-white"><FaInstagram size={18} /></a>
             </div>
           </div>
         </div>
