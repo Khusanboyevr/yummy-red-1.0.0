@@ -26,6 +26,7 @@ export default function Navbar() {
     { to: '/', label: 'Asosiy' },
     { to: '/about', label: 'Biz Haqimizda' },
     { to: '/menu', label: 'Menyu' },
+    { to: '/combos', label: 'Combo' },
     { to: '/gallery', label: 'Galereya' },
     { to: '/contact', label: 'Aloqa' },
   ];

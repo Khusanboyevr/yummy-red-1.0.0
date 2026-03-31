@@ -11,6 +11,7 @@ import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import Cart from './pages/Cart';
+import Combos from './pages/Combos';
 import { CartProvider } from './context/CartContext';
 
 const ProtectedRoute = ({ children }) => {
@@ -29,6 +30,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
               <Route path="/menu" element={<Menu />} />
+              <Route path="/combos" element={<Combos />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/cart" element={<Cart />} />
