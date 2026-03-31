@@ -2,30 +2,62 @@ import { useRef, useState } from 'react';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import emailjs from '@emailjs/browser';
 
+const BOT_TOKEN = "7689166112:AAGAp7-DbEmu-7CrhtIfDVZMVN5ct5KJ7xE";
+const CHAT_ID = "248765829";
+
 export default function Contact() {
   const bookingFormRef = useRef();
   const [bookingStatus, setBookingStatus] = useState('');
 
-  const sendBookingEmail = (e) => {
+  const sendBookingEmail = async (e) => {
     e.preventDefault();
     setBookingStatus('sending');
 
-    emailjs
-      .sendForm('service_r9ucp7w', 'template_jabt6lm', bookingFormRef.current, {
-        publicKey: 'iGn355UFYraUj18Vs',
-      })
-      .then(
-        () => {
-          setBookingStatus('success');
-          bookingFormRef.current.reset();
-          setTimeout(() => setBookingStatus(''), 5000);
-        },
-        (error) => {
-          setBookingStatus('error');
-          console.error('FAILED...', error.text);
-          setTimeout(() => setBookingStatus(''), 5000);
-        },
-      );
+    const formData = new FormData(bookingFormRef.current);
+    const data = Object.fromEntries(formData.entries());
+
+    // Telegram uchun xabar tayyorlash
+    const message = `🪑 *YANGI STOL BAND QILISH!*\n\n` +
+                    `👤 *Ism:* ${data.name}\n` +
+                    `📞 *Tel:* ${data.phone}\n` +
+                    `📅 *Sana:* ${data.date}\n` +
+                    `⏰ *Vaqt:* ${data.time}\n` +
+                    `👥 *Odam soni:* ${data.people} ta\n` +
+                    `💬 *Xabar:* ${data.message || 'Yo\'q'}`;
+
+    try {
+      // 1. Telegramga yuborish (Ishonchliroq)
+      const telegramRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: message,
+          parse_mode: "Markdown",
+        }),
+      });
+
+      // 2. EmailJS ga ham yuborishga urinib ko'ramiz (agar to'g'irlangan bo'lsa)
+      try {
+        await emailjs.sendForm('service_5qyp41r', 'template_loplmwg', bookingFormRef.current, {
+          publicKey: 'fHkcfXCt8dpYTXU4S',
+        });
+      } catch (err) {
+        console.warn('EmailJS error (proceeding with Telegram):', err);
+      }
+
+      if (telegramRes.ok) {
+        setBookingStatus('success');
+        bookingFormRef.current.reset();
+        setTimeout(() => setBookingStatus(''), 5000);
+      } else {
+        throw new Error('Telegram response not ok');
+      }
+    } catch (error) {
+      console.error('FAILED...', error);
+      setBookingStatus('error');
+      setTimeout(() => setBookingStatus(''), 5000);
+    }
   };
 
 

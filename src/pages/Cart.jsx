@@ -474,15 +474,47 @@ export default function Cart() {
                     {orderDetails.paymentMethod === "card" ? (
                       <>
                         <div className="bg-light p-3 rounded mb-4">
-                          <p className="mb-1 text-muted">
-                            Karta raqami (Uzcard/Humo):
+                          <p className="mb-3 text-muted small">
+                            To'lov qilish uchun quyidagi ilovalardan birini tanlang yoki karta raqami orqali yuboring:
                           </p>
-                          <h4 className="fw-bold text-dark">
-                            8600 1234 5678 9012
-                          </h4>
-                          <p className="small text-muted mb-0">
-                            Mijoz: GoPizza Admin
-                          </p>
+                          
+                          <div className="d-flex flex-wrap justify-content-center gap-2 mb-2">
+                            <a 
+                              href="https://indoor.click.uz/pay?id=037877&t=0" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 shadow-sm"
+                              style={{ backgroundColor: '#00aef0', color: '#fff', borderRadius: '12px', border: 'none', transition: 'transform 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                              Click
+                            </a>
+                            
+                            <a 
+                              href="https://transfer.paycom.uz/67109ee0e51de1c6a3a5e645" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 shadow-sm"
+                              style={{ backgroundColor: '#3eeada', color: '#000', borderRadius: '12px', border: 'none', transition: 'transform 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                          Payme
+                            </a>
+
+                            <a 
+                              href="https://app.paynet.uz/?m=34970" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-sm d-flex align-items-center gap-2 px-3 py-2 shadow-sm"
+                              style={{ backgroundColor: '#28a745', color: '#fff', borderRadius: '12px', border: 'none', transition: 'transform 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                              Paynet
+                            </a>
+                          </div>
                         </div>
 
                         <div className="mb-4 text-start">
