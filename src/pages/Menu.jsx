@@ -2,11 +2,14 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Loader2 } from 'lucide-react';
 import { staticMenuData } from '../data/menuData';
+import { getRestaurantStatus } from '../utils/businessHours';
+import ClosedOverlay from '../components/ClosedOverlay';
 
 export default function Menu() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
+  const { isOpen } = getRestaurantStatus();
 
   useEffect(() => {
     const fetchMenu = () => {
@@ -51,6 +54,7 @@ export default function Menu() {
       <div className="container section-title" data-aos="fade-up">
         <h2>Bizning Menyu</h2>
         <p><span>Bizning</span> <span className="description-title">Mazali Menyumiz</span></p>
+        {!isOpen && <ClosedOverlay />}
       </div>
 
       <div className="container" data-aos="fade-up" data-aos-delay="200">
@@ -98,14 +102,23 @@ export default function Menu() {
 
                   <button 
                     className="btn btn-danger d-flex align-items-center gap-2" 
+                    disabled={!isOpen}
                     onClick={() => {
+                      if (!isOpen) return;
                       const size = item.selectedSize || (item.variants?.[0]?.size) || 'Standard';
                       const price = item.selectedPrice || (item.variants?.[0]?.price) || item.price;
                       addToCart({ ...item, size, price });
                     }}
-                    style={{ borderRadius: '25px', padding: '8px 25px', fontSize: '14px', fontWeight: '600' }}
+                    style={{ 
+                      borderRadius: '25px', 
+                      padding: '8px 25px', 
+                      fontSize: '14px', 
+                      fontWeight: '600',
+                      opacity: isOpen ? 1 : 0.6,
+                      cursor: isOpen ? 'pointer' : 'not-allowed'
+                    }}
                   >
-                    <ShoppingCart size={16} /> Savatga Qo'shish
+                    <ShoppingCart size={16} /> {isOpen ? "Savatga Qo'shish" : "Hozircha yopiq"}
                   </button>
                 </div>
               </div>

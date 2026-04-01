@@ -14,6 +14,7 @@ import {
   Loader2,
   Send,
 } from "lucide-react";
+import { getRestaurantStatus } from "../utils/businessHours";
 
 // TELEGRAM BOT SOZMALARI (BotFather'dan olingan ma'lumotlarni kiriting)
 const BOT_TOKEN = "7689166112:AAGAp7-DbEmu-7CrhtIfDVZMVN5ct5KJ7xE"; // Real Bot Tokeningiz
@@ -27,6 +28,7 @@ export default function Cart() {
     clearCart,
   } = useCart();
   const { user, updateUserProfile } = useAuth();
+  const { isOpen } = getRestaurantStatus();
   const [checkoutStep, setCheckoutStep] = useState(null); // null, 'info', 'payment', 'loading', 'success'
   const [orderDetails, setOrderDetails] = useState({
     name: user ? user.name : "",
@@ -440,10 +442,15 @@ export default function Cart() {
                         >
                           Savatga qaytish
                         </button>
-                        <button type="submit" className="btn btn-danger w-100">
-                          Keyingisi
+                        <button type="submit" disabled={!isOpen} className="btn btn-danger w-100">
+                          {isOpen ? "Keyingisi" : "Hozircha yopiq"}
                         </button>
                       </div>
+                      {!isOpen && (
+                        <div className="alert alert-danger mt-3 small">
+                          Hozirda dam olyapmiz. Buyurtmalarni faqat 09:00 dan keyin qabul qilishimiz mumkin.
+                        </div>
+                      )}
                     </form>
                   </div>
                 </div>
@@ -597,11 +604,16 @@ export default function Cart() {
                           </>
                         ) : (
                           <>
-                            <Send size={18} /> Buyurtma Berish
+                            <Send size={18} /> {isOpen ? "Buyurtma Berish" : "Hozircha yopiq"}
                           </>
                         )}
                       </button>
                     </div>
+                    {!isOpen && (
+                      <div className="alert alert-danger mt-3 small">
+                        Hozirda dam olyapmiz. Buyurtmalarni faqat 09:00 dan keyin qabul qilishimiz mumkin.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -630,11 +642,17 @@ export default function Cart() {
                   {!checkoutStep && (
                     <button
                       className="btn btn-danger w-100 py-3"
+                      disabled={!isOpen}
                       onClick={() => setCheckoutStep("info")}
                       style={{ borderRadius: "25px", fontWeight: "600" }}
                     >
-                      Buyurtmani Tasdiqlash
+                      {isOpen ? "Buyurtmani Tasdiqlash" : "Hozircha yopiq"}
                     </button>
+                  )}
+                  {!isOpen && (
+                    <div className="alert alert-danger mt-2 text-center small py-2">
+                      Xizmat ko'rsatish vaqti tugagan
+                    </div>
                   )}
                 </div>
               </div>

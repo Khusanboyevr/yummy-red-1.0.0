@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 import emailjs from '@emailjs/browser';
+import { getRestaurantStatus } from '../utils/businessHours';
+import ClosedOverlay from '../components/ClosedOverlay';
 
 const BOT_TOKEN = "7689166112:AAGAp7-DbEmu-7CrhtIfDVZMVN5ct5KJ7xE";
 const CHAT_ID = "248765829";
@@ -9,6 +11,7 @@ export default function Contact() {
   const bookingFormRef = useRef();
   const [bookingStatus, setBookingStatus] = useState('');
   const [phone, setPhone] = useState('+998');
+  const { isOpen } = getRestaurantStatus();
 
   const sendBookingEmail = async (e) => {
     e.preventDefault();
@@ -69,6 +72,7 @@ export default function Contact() {
         <div className="container section-title" data-aos="fade-up">
           <h2>Stol Band Qilish</h2>
           <p><span>Biz Bilan</span> <span className="description-title">Joyingizni Band Qiling</span></p>
+          {!isOpen && <ClosedOverlay />}
         </div>
 
         <div className="container">
@@ -121,8 +125,8 @@ export default function Contact() {
                 <div className="text-center mt-4">
                   {bookingStatus === 'success' && <div className="alert alert-success rounded-3 mb-3" role="alert">Joyingiz muvaffaqiyatli band qilindi!</div>}
                   {bookingStatus === 'error' && <div className="alert alert-danger rounded-3 mb-3" role="alert">Xatolik yuz berdi. Iltimos qaytadan urinib ko'ring.</div>}
-                  <button type="submit" disabled={bookingStatus === 'sending'} className="btn btn-danger btn-lg px-5" style={{ borderRadius: '30px' }}>
-                    {bookingStatus === 'sending' ? 'Yuborilmoqda...' : 'Stolni Band Qilish'}
+                  <button type="submit" disabled={bookingStatus === 'sending' || !isOpen} className="btn btn-danger btn-lg px-5" style={{ borderRadius: '30px' }}>
+                    {bookingStatus === 'sending' ? 'Yuborilmoqda...' : isOpen ? 'Stolni Band Qilish' : 'Hozircha yopiq'}
                   </button>
                 </div>
               </form>
