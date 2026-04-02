@@ -83,9 +83,15 @@ export default function Navbar() {
             {/* Stol Band Qilish - hide on very small screens, show on sm+ */}
             <div className="d-none d-sm-block">
               {admin ? (
-                <button className="btn-getstarted" onClick={() => { logout(); navigate('/'); }}>
-                  Admin Chiqish
-                </button>
+                location.pathname.startsWith('/admin') ? (
+                  <button className="btn-getstarted" onClick={() => { logout(); navigate('/'); }}>
+                    Chiqish
+                  </button>
+                ) : (
+                  <Link className="btn-getstarted" to="/admin">
+                    Admin Panel
+                  </Link>
+                )
               ) : user ? (
                 <Link className="btn-getstarted" to="/account">
                   Hisobim
@@ -191,12 +197,18 @@ export default function Navbar() {
         {/* Stol Band Qilish in drawer */}
         <div className="mt-4">
           {admin ? (
-            <button
-              className="btn-getstarted w-100"
-              onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
-            >
-              Admin Chiqish
-            </button>
+            location.pathname.startsWith('/admin') ? (
+              <button
+                className="btn-getstarted w-100"
+                onClick={() => { logout(); navigate('/'); setMobileOpen(false); }}
+              >
+                Chiqish
+              </button>
+            ) : (
+              <Link className="btn-getstarted d-block text-center" to="/admin" onClick={() => setMobileOpen(false)}>
+                Admin Panel
+              </Link>
+            )
           ) : user ? (
             <Link className="btn-getstarted d-block text-center" to="/account" onClick={() => setMobileOpen(false)}>
               Hisobim

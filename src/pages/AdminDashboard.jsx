@@ -1,27 +1,45 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Edit, Trash2, Search, X, Loader2, Download, RefreshCw, Layers, List } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, X, Loader2, Download, RefreshCw, Layers, List, ThumbsUp, Link2 } from 'lucide-react';
 import { staticMenuData } from '../data/menuData';
 import { staticComboData } from '../data/comboData';
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState('menu'); // 'menu' yoki 'combos'
+  const [activeTab, setActiveTab] = useState('menu'); // 'menu', 'combos', yoki 'recommendations'
   const [items, setItems] = useState([]);
   const [combos, setCombos] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   
-  // Menu form data
   const [formData, setFormData] = useState({
     name: '',
     price: '',
-    category: 'all',
+    category: 'Pizzalar', // Default kategoriya
     imageUrl: '',
     imageFile: null,
     variants: []
+  });
+
+  const [activeAdminCategory, setActiveAdminCategory] = useState('Hamma taomlar');
+
+  const categories = [
+    'Hamma taomlar',
+    'Pizzalar',
+    'Fast food',
+    'Salqin ichimlik va sharbatlar',
+    'Qaynoq ichimliklar',
+    'Qoʻshimchalar',
+    'Turk taomlari'
+  ];
+
+  // Recommendation form data
+  const [recFormData, setRecFormData] = useState({
+    sourceCategory: 'Pizzalar',
+    recommendedItemIds: []
   });
 
   // Combo form data
@@ -70,10 +88,15 @@ export default function AdminDashboard() {
   const fetchData = () => {
     setLoading(true);
     const savedMenu = localStorage.getItem('gopizza_menu');
-    setItems(savedMenu ? JSON.parse(savedMenu) : []);
+    const menuItems = savedMenu ? JSON.parse(savedMenu) : [];
+    setItems(menuItems);
     
     const savedCombos = localStorage.getItem('gopizza_combos');
     setCombos(savedCombos ? JSON.parse(savedCombos) : []);
+
+    const savedRecs = localStorage.getItem('gopizza_recommendations');
+    setRecommendations(savedRecs ? JSON.parse(savedRecs) : []);
+
     setLoading(false);
   };
 
@@ -134,12 +157,26 @@ export default function AdminDashboard() {
         setFormData({
           name: '',
           price: '',
-          category: 'all',
+          category: 'Hamma taomlar',
           imageUrl: '',
           imageFile: null,
           variants: []
         });
         setImagePreview(null);
+      }
+    } else if (activeTab === 'recommendations') {
+      if (item) {
+        setEditingItem(item);
+        setRecFormData({
+          sourceCategory: item.sourceCategory,
+          recommendedItemIds: item.recommendedItemIds || []
+        });
+      } else {
+        setEditingItem(null);
+        setRecFormData({
+          sourceCategory: 'Hamma taomlar',
+          recommendedItemIds: []
+        });
       }
     } else {
       if (item) {
@@ -207,7 +244,7 @@ export default function AdminDashboard() {
           _id: editingItem ? editingItem._id : Date.now().toString(),
           name: formData.name,
           price: Number(formData.price),
-          category: 'all',
+          category: formData.category,
           image: finalImage,
           variants: formData.variants,
           createdAt: editingItem ? editingItem.createdAt : new Date().toISOString()
@@ -224,6 +261,25 @@ export default function AdminDashboard() {
 
         localStorage.setItem('gopizza_menu', JSON.stringify(menuList));
         setItems(menuList);
+      } else if (activeTab === 'recommendations') {
+        const newRec = {
+          _id: editingItem ? editingItem._id : Date.now().toString(),
+          sourceCategory: recFormData.sourceCategory,
+          recommendedItemIds: recFormData.recommendedItemIds,
+          createdAt: editingItem ? editingItem.createdAt : new Date().toISOString()
+        };
+
+        const savedRecs = localStorage.getItem('gopizza_recommendations');
+        let recList = savedRecs ? JSON.parse(savedRecs) : [];
+
+        if (editingItem) {
+          recList = recList.map(rec => rec._id === editingItem._id ? newRec : rec);
+        } else {
+          recList = [newRec, ...recList];
+        }
+
+        localStorage.setItem('gopizza_recommendations', JSON.stringify(recList));
+        setRecommendations(recList);
       } else {
         // Combo saqlash
         let finalImage = comboFormData.imageUrl;
@@ -271,7 +327,20 @@ export default function AdminDashboard() {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Chindan ham o\'chirmoqchimisiz?')) {
+    if (activeTab === 'recommendations') {
+      const confirmed = window.confirm('Haqiqatdan ham ushbu tavfsiyani o\'chirmoqchimisiz?');
+      if (confirmed) {
+        setRecommendations(prev => {
+          const newList = prev.filter(i => i._id !== id);
+          localStorage.setItem('gopizza_recommendations', JSON.stringify(newList));
+          return newList;
+        });
+      }
+      return;
+    }
+
+    const confirmed = window.confirm('Haqiqatdan ham ushbu elementni o\'chirmoqchimisiz?');
+    if (confirmed) {
       if (activeTab === 'menu') {
         const savedMenu = localStorage.getItem('gopizza_menu');
         let menuList = savedMenu ? JSON.parse(savedMenu) : [];
@@ -328,10 +397,19 @@ export default function AdminDashboard() {
     }
   };
 
-  const currentList = activeTab === 'menu' ? items : combos;
-  const filteredItems = currentList.filter(item => 
-    item.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const currentList = activeTab === 'menu' ? items : (activeTab === 'combos' ? combos : recommendations);
+  const filteredItems = currentList.filter(item => {
+    const matchesSearch = activeTab === 'recommendations'
+      ? item.sourceCategory?.toLowerCase().includes(search.toLowerCase())
+      : (item.name?.toLowerCase().includes(search.toLowerCase()) || 
+         item.category?.toLowerCase().includes(search.toLowerCase()));
+
+    const matchesCategory = activeTab === 'menu'
+      ? (activeAdminCategory === 'Hamma taomlar' || item.category === activeAdminCategory)
+      : true;
+
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <section className="section mt-5 pt-5">
@@ -366,17 +444,37 @@ export default function AdminDashboard() {
           >
             <Layers size={18} /> Combolar
           </button>
+          <button 
+            className={`btn d-flex align-items-center gap-2 ${activeTab === 'recommendations' ? 'btn-danger' : 'btn-light'}`}
+            onClick={() => { setActiveTab('recommendations'); setSearch(''); }}
+          >
+            <ThumbsUp size={18} /> Tavfsiya
+          </button>
         </div>
 
-        <div className="mb-4 position-relative">
-          <input 
-            type="text" 
-            className="form-control ps-5 py-2" 
-            placeholder={`${activeTab === 'menu' ? 'Taomnomadan' : 'Combolardan'} qidirish...`} 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Search className="position-absolute top-50 translate-middle-y ms-3 text-muted" size={18} />
+        <div className="mb-4 d-flex gap-2 flex-wrap">
+          <div className="position-relative flex-grow-1">
+            <input 
+              type="text" 
+              className="form-control ps-5 py-2" 
+              placeholder={`${activeTab === 'menu' ? 'Taomnomadan' : (activeTab === 'combos' ? 'Combolardan' : 'Tavfsiyalardan')} qidirish...`} 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Search className="position-absolute top-50 translate-middle-y ms-3 text-muted" size={18} />
+          </div>
+          
+          {activeTab === 'menu' && (
+            <select 
+              className="form-select w-auto"
+              value={activeAdminCategory}
+              onChange={(e) => setActiveAdminCategory(e.target.value)}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          )}
         </div>
 
         {loading ? (
@@ -387,47 +485,96 @@ export default function AdminDashboard() {
           <div className="table-responsive bg-white shadow rounded p-3">
             <table className="table table-hover align-middle">
               <thead>
-                <tr>
-                  <th>Rasm</th>
-                  <th>Nomi</th>
-                  <th>Narxi</th>
-                  {activeTab === 'combos' && <th>Badge</th>}
-                  <th>Amallar</th>
-                </tr>
+                {activeTab === 'recommendations' ? (
+                  <tr>
+                    <th>Trigger Kategoriya</th>
+                    <th>Tavfsiya Etiladi (Suv, Sous va h.k.)</th>
+                    <th>Sana</th>
+                    <th>Amallar</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Rasm</th>
+                    <th>Nomi</th>
+                    <th>Kategoriya</th>
+                    <th>Narxi</th>
+                    {activeTab === 'combos' && <th>Badge</th>}
+                    <th>Amallar</th>
+                  </tr>
+                )}
               </thead>
               <tbody>
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-4 text-muted">Hech narsa topilmadi.</td>
+                    <td colSpan={activeTab === 'combos' ? "6" : "5"} className="text-center py-4 text-muted">Hech narsa topilmadi.</td>
                   </tr>
                 ) : (
-                  filteredItems.map(item => (
-                    <tr key={item._id}>
-                      <td>
-                        <img 
-                          src={item.image} 
-                          alt={item.name} 
-                          style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} 
-                        />
-                      </td>
-                      <td>
-                        <h6 className="mb-0">{item.name}</h6>
-                        {activeTab === 'combos' && <small className="text-muted">{item.items.substring(0, 30)}...</small>}
-                      </td>
-                      <td>{item.price.toLocaleString()} so'm</td>
-                      {activeTab === 'combos' && <td><span className="badge bg-danger">{item.badge}</span></td>}
-                      <td>
-                        <div className="d-flex gap-2">
-                          <button className="btn btn-sm btn-outline-primary" onClick={() => handleOpenModal(item)}>
-                            <Edit size={16} />
-                          </button>
-                          <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(item._id)}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  filteredItems.map(item => {
+                    if (activeTab === 'recommendations') {
+                      const recItems = item.recommendedItemIds.map(id => items.find(i => i._id === id)).filter(Boolean);
+                      
+                      return (
+                        <tr key={item._id}>
+                          <td>
+                            <div className="d-flex align-items-center gap-2 text-danger fw-bold">
+                              <Layers size={18} />
+                              <span>{item.sourceCategory || 'Mavjud emas (Eski)'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex flex-wrap gap-1">
+                              {recItems.map(ri => (
+                                <span key={ri._id} className="badge bg-info text-dark small">{ri.name}</span>
+                              ))}
+                              {recItems.length === 0 && <span className="text-muted small">Tavfsiyalar yo'q</span>}
+                            </div>
+                          </td>
+                          <td><small className="text-muted">{new Date(item.createdAt).toLocaleDateString()}</small></td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <button className="btn btn-sm btn-outline-primary" onClick={() => handleOpenModal(item)}>
+                                <Edit size={16} />
+                              </button>
+                              <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(item._id)}>
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
+                      <tr key={item._id}>
+                        <td>
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} 
+                          />
+                        </td>
+                        <td>
+                          <h6 className="mb-0">{item.name}</h6>
+                          {activeTab === 'combos' && <small className="text-muted">{item.items.substring(0, 30)}...</small>}
+                        </td>
+                        <td>
+                          <span className="badge bg-light text-dark border">{item.category || 'Belgilanmagan'}</span>
+                        </td>
+                        <td>{item.price.toLocaleString()} so'm</td>
+                        {activeTab === 'combos' && <td><span className="badge bg-danger">{item.badge}</span></td>}
+                        <td>
+                          <div className="d-flex gap-2">
+                            <button className="btn btn-sm btn-outline-primary" onClick={() => handleOpenModal(item)}>
+                              <Edit size={16} />
+                            </button>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(item._id)}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -441,86 +588,167 @@ export default function AdminDashboard() {
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">{editingItem ? 'Tahrirlash' : `Yangi ${activeTab === 'menu' ? 'Taom' : 'Combo'} Qo'shish`}</h5>
+                <h5 className="modal-title">{editingItem ? 'Tahrirlash' : `Yangi ${activeTab === 'menu' ? 'Taom' : (activeTab === 'combos' ? 'Combo' : 'Tavfsiya')} Qo'shish`}</h5>
                 <button type="button" className="btn-close" onClick={() => setIsModalOpen(false)}></button>
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
                   <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Nomi</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        value={activeTab === 'menu' ? formData.name : comboFormData.name} 
-                        onChange={e => activeTab === 'menu' ? setFormData({...formData, name: e.target.value}) : setComboFormData({...comboFormData, name: e.target.value})} 
-                        required 
-                      />
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Narxi</label>
-                      <input 
-                        type="number" 
-                        className="form-control" 
-                        value={activeTab === 'menu' ? formData.price : comboFormData.price} 
-                        onChange={e => activeTab === 'menu' ? setFormData({...formData, price: e.target.value}) : setComboFormData({...comboFormData, price: e.target.value})} 
-                        required 
-                      />
-                    </div>
-
-                    {activeTab === 'combos' && (
-                       <>
-                         <div className="col-md-6 mb-3">
-                            <label className="form-label">Badge (masalan: 2+1 AKSIYA)</label>
-                            <input type="text" className="form-control" value={comboFormData.badge} onChange={e => setComboFormData({...comboFormData, badge: e.target.value})} />
-                         </div>
-                         <div className="col-md-6 mb-3">
-                            <label className="form-label">Fon Rangi</label>
-                            <input type="color" className="form-control form-control-color w-100" value={comboFormData.backgroundColor} onChange={e => setComboFormData({...comboFormData, backgroundColor: e.target.value})} />
-                         </div>
-                         <div className="col-12 mb-3">
-                            <label className="form-label">Tarkibi (Vergul bilan ajrating)</label>
-                            <textarea className="form-control" value={comboFormData.items} onChange={e => setComboFormData({...comboFormData, items: e.target.value})} rows="2" required></textarea>
-                         </div>
-                       </>
-                    )}
-
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label">Rasm Linki (ixtiyoriy)</label>
-                      <input 
-                        type="text" 
-                        className="form-control" 
-                        placeholder="https://..." 
-                        value={activeTab === 'menu' ? formData.imageUrl : comboFormData.imageUrl} 
-                        onChange={e => activeTab === 'menu' ? setFormData({...formData, imageUrl: e.target.value, imageFile: null}) : setComboFormData({...comboFormData, imageUrl: e.target.value, imageFile: null})} 
-                      />
-                    </div>
-                    <div className="col-12 mb-3">
-                      <label className="form-label">Yoki Rasm Yuklash</label>
-                      <input type="file" className="form-control" accept="image/*" onChange={handleFileChange} />
-                    </div>
-                    {imagePreview && (
-                      <div className="col-12 text-center mb-3">
-                        <img src={imagePreview} alt="Preview" style={{ maxWidth: '200px', borderRadius: '10px' }} />
-                      </div>
-                    )}
-                    
-                    {activeTab === 'menu' && (
-                      <div className="col-12 mt-2">
-                        <div className="d-flex justify-content-between align-items-center mb-2">
-                          <label className="form-label fw-bold mb-0">Variantlar</label>
-                          <button type="button" className="btn btn-sm btn-outline-success" onClick={() => setFormData({ ...formData, variants: [...formData.variants, { size: '', price: '' }] })}>
-                            <Plus size={14} /> Variant Qo'shish
-                          </button>
+                    {activeTab === 'recommendations' ? (
+                      <div className="col-12">
+                        <div className="mb-3">
+                          <label className="form-label">Qaysi bo'lim uchun? (Kategoriya)</label>
+                          <select 
+                            className="form-select" 
+                            value={recFormData.sourceCategory} 
+                            onChange={e => setRecFormData({...recFormData, sourceCategory: e.target.value})}
+                            required
+                          >
+                            {categories.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
                         </div>
-                        {formData.variants.map((v, i) => (
-                          <div key={i} className="row g-2 mb-2">
-                            <div className="col-5"><input type="text" className="form-control form-control-sm" placeholder="O'lcham" value={v.size} onChange={e => { const v2 = [...formData.variants]; v2[i].size = e.target.value; setFormData({...formData, variants: v2}); }} /></div>
-                            <div className="col-5"><input type="number" className="form-control form-control-sm" placeholder="Narx" value={v.price} onChange={e => { const v2 = [...formData.variants]; v2[i].price = e.target.value; setFormData({...formData, variants: v2}); }} /></div>
-                            <div className="col-2"><button type="button" className="btn btn-sm btn-outline-danger w-100" onClick={() => setFormData({...formData, variants: formData.variants.filter((_, idx) => idx !== i)}) }><X size={14} /></button></div>
+                        <div className="mb-3">
+                          <label className="form-label">Tavfsiya etiladigan qo'shimchalar (Salqin ichimliklar, Souslar, Qo'shimchalar)</label>
+                          <div className="border rounded p-3" style={{ maxHeight: '250px', overflowY: 'auto', backgroundColor: '#f8f9fa' }}>
+                            {items.filter(i => ['Salqin ichimlik va sharbatlar', 'Qoʻshimchalar', 'Qaynoq ichimliklar', 'all', 'Hamma taomlar'].includes(i.category) || !i.category).map(item => (
+                              <div key={item._id} className="form-check mb-1">
+                                <input 
+                                  className="form-check-input" 
+                                  type="checkbox" 
+                                  id={`rec-${item._id}`}
+                                  checked={recFormData.recommendedItemIds.includes(item._id)}
+                                  onChange={e => {
+                                    const ids = e.target.checked 
+                                      ? [...recFormData.recommendedItemIds, item._id]
+                                      : recFormData.recommendedItemIds.filter(id => id !== item._id);
+                                    setRecFormData({...recFormData, recommendedItemIds: ids});
+                                  }}
+                                />
+                                <label className="form-check-label d-flex align-items-center gap-2" htmlFor={`rec-${item._id}`}>
+                                  {item.name} <small className="text-muted">({item.price.toLocaleString()} so'm)</small>
+                                </label>
+                              </div>
+                            ))}
+                            {items.filter(i => ['Salqin ichimlik va sharbatlar', 'Qoʻshimchalar', 'Qaynoq ichimliklar', 'all', 'Hamma taomlar'].includes(i.category) || !i.category).length === 0 && (
+                              <div className="text-center py-3 text-muted small">
+                                Tavfsiya uchun mos taomlar topilmadi.<br/>
+                                (Ichimliklar yoki Qo'shimchalar bo'limiga taom qo'shing)
+                              </div>
+                            )}
                           </div>
-                        ))}
+                          <small className="text-muted">Mijoz ushbu bo'limdan biror narsa tanlasa, yuqoridagi qo'shimchalar tavfsiya qilinadi.</small>
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div className="col-md-6 mb-3">
+                          <label className="form-label">Nomi</label>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            value={activeTab === 'menu' ? formData.name : comboFormData.name} 
+                            onChange={e => activeTab === 'menu' ? setFormData({...formData, name: e.target.value}) : setComboFormData({...comboFormData, name: e.target.value})} 
+                            required 
+                          />
+                        </div>
+                        <div className="col-md-6 mb-3">
+                          <label className="form-label">Narxi</label>
+                          <input 
+                            type="number" 
+                            className="form-control" 
+                            value={activeTab === 'menu' ? formData.price : comboFormData.price} 
+                            onChange={e => activeTab === 'menu' ? setFormData({...formData, price: e.target.value}) : setComboFormData({...comboFormData, price: e.target.value})} 
+                            required 
+                          />
+                        </div>
+
+                        {activeTab === 'menu' && (
+                          <div className="col-md-12 mb-3">
+                            <label className="form-label">Kategoriya</label>
+                            <select 
+                              className="form-select" 
+                              value={formData.category} 
+                              onChange={e => setFormData({...formData, category: e.target.value})}
+                              required
+                            >
+                              {categories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {activeTab === 'combos' && (
+                          <>
+                            <div className="col-md-6 mb-3">
+                              <label className="form-label">Badge (Misol: 'Super Narx')</label>
+                              <input 
+                                type="text" 
+                                className="form-control" 
+                                value={comboFormData.badge} 
+                                onChange={e => setComboFormData({...comboFormData, badge: e.target.value})} 
+                                required 
+                              />
+                            </div>
+                            <div className="col-md-12 mb-3">
+                              <label className="form-label">Tarkibi (Vergul bilan ajrating)</label>
+                              <textarea 
+                                className="form-control" 
+                                rows="2"
+                                value={comboFormData.items} 
+                                onChange={e => setComboFormData({...comboFormData, items: e.target.value})} 
+                                placeholder="2ta Pitsa, Coca-cola 1.5L..."
+                                required 
+                              ></textarea>
+                            </div>
+                          </>
+                        )}
+
+                        <div className="col-md-12 mb-3">
+                          <label className="form-label">Rasm Linki (ixtiyoriy)</label>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            value={activeTab === 'menu' ? formData.imageUrl : comboFormData.imageUrl} 
+                            onChange={e => activeTab === 'menu' ? setFormData({...formData, imageUrl: e.target.value}) : setComboFormData({...comboFormData, imageUrl: e.target.value})} 
+                            placeholder="https://..."
+                          />
+                        </div>
+                        <div className="col-md-12 mb-3">
+                          <label className="form-label">Yoki Rasm Yuklash</label>
+                          <input 
+                            type="file" 
+                            className="form-control" 
+                            accept="image/*"
+                            onChange={handleFileChange}
+                          />
+                          {imagePreview && (
+                            <div className="mt-2 text-center border p-2 rounded">
+                              <img src={imagePreview} alt="Preview" style={{ maxHeight: '100px', maxWidth: '100%' }} />
+                            </div>
+                          )}
+                        </div>
+
+                        {activeTab === 'menu' && (
+                          <div className="col-12 mt-2">
+                            <div className="d-flex justify-content-between align-items-center mb-2">
+                              <label className="form-label fw-bold mb-0">Variantlar</label>
+                              <button type="button" className="btn btn-sm btn-outline-success" onClick={() => setFormData({ ...formData, variants: [...formData.variants, { size: '', price: '' }] })}>
+                                <Plus size={14} /> Variant Qo'shish
+                              </button>
+                            </div>
+                            {formData.variants.map((v, i) => (
+                              <div key={i} className="row g-2 mb-2">
+                                <div className="col-5"><input type="text" className="form-control form-control-sm" placeholder="O'lcham" value={v.size} onChange={e => { const v2 = [...formData.variants]; v2[i].size = e.target.value; setFormData({...formData, variants: v2}); }} /></div>
+                                <div className="col-5"><input type="number" className="form-control form-control-sm" placeholder="Narx" value={v.price} onChange={e => { const v2 = [...formData.variants]; v2[i].price = e.target.value; setFormData({...formData, variants: v2}); }} /></div>
+                                <div className="col-2"><button type="button" className="btn btn-sm btn-outline-danger w-100" onClick={() => setFormData({...formData, variants: formData.variants.filter((_, idx) => idx !== i)}) }><X size={14} /></button></div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
