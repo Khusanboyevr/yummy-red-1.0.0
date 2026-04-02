@@ -21,7 +21,8 @@ export default function AdminDashboard() {
     category: 'Pizzalar', // Default kategoriya
     imageUrl: '',
     imageFile: null,
-    variants: []
+    variants: [],
+    description: ''
   });
 
   const [activeAdminCategory, setActiveAdminCategory] = useState('Hamma taomlar');
@@ -149,7 +150,8 @@ export default function AdminDashboard() {
           category: item.category,
           imageUrl: item.image,
           imageFile: null,
-          variants: item.variants || []
+          variants: item.variants || [],
+          description: item.description || ''
         });
         setImagePreview(item.image);
       } else {
@@ -160,7 +162,8 @@ export default function AdminDashboard() {
           category: 'Hamma taomlar',
           imageUrl: '',
           imageFile: null,
-          variants: []
+          variants: [],
+          description: ''
         });
         setImagePreview(null);
       }
@@ -247,6 +250,7 @@ export default function AdminDashboard() {
           category: formData.category,
           image: finalImage,
           variants: formData.variants,
+          description: formData.description,
           createdAt: editingItem ? editingItem.createdAt : new Date().toISOString()
         };
 
@@ -677,6 +681,19 @@ export default function AdminDashboard() {
                                 <option key={cat} value={cat}>{cat}</option>
                               ))}
                             </select>
+                          </div>
+                        )}
+
+                        {activeTab === 'menu' && (
+                          <div className="col-md-12 mb-3">
+                            <label className="form-label">Tavsif (Description)</label>
+                            <textarea 
+                              className="form-control" 
+                              rows="2"
+                              value={formData.description} 
+                              onChange={e => setFormData({...formData, description: e.target.value})} 
+                              placeholder="Mazali va to'yimli, maxsus retsept asosida tayyorlangan."
+                            ></textarea>
                           </div>
                         )}
 

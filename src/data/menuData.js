@@ -21,6 +21,7 @@ export const staticMenuData = [
         "price": "34000"
       }
     ],
+    "description": "Yangi yopilgan non va yumshoq go'sht bilan tayyorlangan mazali burger.",
     "createdAt": "2026-03-30T14:42:29.139Z"
   },
   {
@@ -39,6 +40,7 @@ export const staticMenuData = [
         "price": "48000"
       }
     ],
+    "description": "Sershira pishloq va sifatli go'shtli masalliqlar uyg'unligi.",
     "createdAt": "2026-03-30T14:41:05.377Z"
   },
   {
@@ -61,6 +63,7 @@ export const staticMenuData = [
         "price": "34000"
       }
     ],
+    "description": "Klassik uslubda tayyorlangan, xushta'm lavash.",
     "createdAt": "2026-03-30T14:34:47.783Z"
   },
   {
