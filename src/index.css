@@ -123,3 +123,60 @@ code {
 #hero h1 {
   color: #37373f !important;
 }
+
+/* Premium Animated Image */
+@keyframes premium-float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-30px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.hero-img-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.premium-img {
+  width: 100% !important;
+  max-width: 450px !important;
+  aspect-ratio: 1/1 !important;
+  object-fit: cover !important;
+  border-radius: 50% !important;
+  border: 15px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2) !important;
+  animation: premium-float 5s ease-in-out infinite !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  z-index: 2;
+  position: relative;
+}
+
+.premium-img-glow {
+  position: absolute;
+  width: 110%;
+  height: 110%;
+  background: radial-gradient(circle, rgba(234, 44, 44, 0.2) 0%, rgba(234, 44, 44, 0) 70%);
+  border-radius: 50%;
+  z-index: 1;
+  filter: blur(20px);
+  animation: premium-float 5s ease-in-out infinite alternate !important;
+}
+
+.premium-img:hover {
+  transform: scale(1.08) rotate(3deg) !important;
+  box-shadow: 0 50px 100px rgba(0, 0, 0, 0.4), 0 0 30px rgba(255, 255, 255, 0.3) !important;
+}
+
+@media (max-width: 991px) {
+  .premium-img {
+    max-width: 350px !important;
+  }
+}
+
+@media (max-width: 575px) {
+  .premium-img {
+    max-width: 280px !important;
+    border-width: 10px !important;
+  }
+}

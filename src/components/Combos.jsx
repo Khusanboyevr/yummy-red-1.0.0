@@ -2,24 +2,25 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { staticComboData } from '../data/comboData';
+import { db } from '../firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function Combos() {
   const [combos, setCombos] = useState([]);
   const { addToCart } = useCart();
 
   useEffect(() => {
-    const saved = localStorage.getItem('gopizza_combos');
-    if (saved) {
+    const fetchCombos = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        setCombos(parsed.length > 0 ? parsed : staticComboData);
-      } catch {
+        const snap = await getDocs(collection(db, 'combos'));
+        const fetched = snap.docs.map(d => d.data());
+        setCombos(fetched.length > 0 ? fetched : staticComboData);
+      } catch (err) {
+        console.error(err);
         setCombos(staticComboData);
       }
-    } else {
-      setCombos(staticComboData);
-      localStorage.setItem('gopizza_combos', JSON.stringify(staticComboData));
-    }
+    };
+    fetchCombos();
   }, []);
 
   if (combos.length === 0) return null;

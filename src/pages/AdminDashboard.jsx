@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Edit, Trash2, Search, X, Loader2, Download, RefreshCw, Layers, List, ThumbsUp, Link2 } from 'lucide-react';
 import { staticMenuData } from '../data/menuData';
 import { staticComboData } from '../data/comboData';
+import { db } from '../firebase';
+import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('menu'); // 'menu', 'combos', yoki 'recommendations'
@@ -86,18 +88,20 @@ export default function AdminDashboard() {
     return <div className="text-center py-5 mt-5">Yuklanmoqda...</div>;
   }
 
-  const fetchData = () => {
+  const fetchData = async () => {
     setLoading(true);
-    const savedMenu = localStorage.getItem('gopizza_menu');
-    const menuItems = savedMenu ? JSON.parse(savedMenu) : [];
-    setItems(menuItems);
-    
-    const savedCombos = localStorage.getItem('gopizza_combos');
-    setCombos(savedCombos ? JSON.parse(savedCombos) : []);
+    try {
+      const menuSnap = await getDocs(collection(db, 'menu'));
+      setItems(menuSnap.docs.map(d => d.data()));
+      
+      const combosSnap = await getDocs(collection(db, 'combos'));
+      setCombos(combosSnap.docs.map(d => d.data()));
 
-    const savedRecs = localStorage.getItem('gopizza_recommendations');
-    setRecommendations(savedRecs ? JSON.parse(savedRecs) : []);
-
+      const recsSnap = await getDocs(collection(db, 'recommendations'));
+      setRecommendations(recsSnap.docs.map(d => d.data()));
+    } catch (err) {
+      console.error(err);
+    }
     setLoading(false);
   };
 
@@ -254,17 +258,12 @@ export default function AdminDashboard() {
           createdAt: editingItem ? editingItem.createdAt : new Date().toISOString()
         };
 
-        const savedMenu = localStorage.getItem('gopizza_menu');
-        let menuList = savedMenu ? JSON.parse(savedMenu) : [];
-
+        await setDoc(doc(db, 'menu', newItem._id.toString()), newItem);
         if (editingItem) {
-          menuList = menuList.map(item => item._id === editingItem._id ? newItem : item);
+          setItems(prev => prev.map(item => item._id === editingItem._id ? newItem : item));
         } else {
-          menuList = [newItem, ...menuList];
+          setItems(prev => [newItem, ...prev]);
         }
-
-        localStorage.setItem('gopizza_menu', JSON.stringify(menuList));
-        setItems(menuList);
       } else if (activeTab === 'recommendations') {
         const newRec = {
           _id: editingItem ? editingItem._id : Date.now().toString(),
@@ -273,17 +272,12 @@ export default function AdminDashboard() {
           createdAt: editingItem ? editingItem.createdAt : new Date().toISOString()
         };
 
-        const savedRecs = localStorage.getItem('gopizza_recommendations');
-        let recList = savedRecs ? JSON.parse(savedRecs) : [];
-
+        await setDoc(doc(db, 'recommendations', newRec._id.toString()), newRec);
         if (editingItem) {
-          recList = recList.map(rec => rec._id === editingItem._id ? newRec : rec);
+          setRecommendations(prev => prev.map(rec => rec._id === editingItem._id ? newRec : rec));
         } else {
-          recList = [newRec, ...recList];
+          setRecommendations(prev => [newRec, ...prev]);
         }
-
-        localStorage.setItem('gopizza_recommendations', JSON.stringify(recList));
-        setRecommendations(recList);
       } else {
         // Combo saqlash
         let finalImage = comboFormData.imageUrl;
@@ -309,17 +303,12 @@ export default function AdminDashboard() {
           createdAt: editingItem ? editingItem.createdAt : new Date().toISOString()
         };
 
-        const savedCombos = localStorage.getItem('gopizza_combos');
-        let comboList = savedCombos ? JSON.parse(savedCombos) : [];
-
+        await setDoc(doc(db, 'combos', newCombo._id.toString()), newCombo);
         if (editingItem) {
-          comboList = comboList.map(c => c._id === editingItem._id ? newCombo : c);
+          setCombos(prev => prev.map(c => c._id === editingItem._id ? newCombo : c));
         } else {
-          comboList = [newCombo, ...comboList];
+          setCombos(prev => [newCombo, ...prev]);
         }
-
-        localStorage.setItem('gopizza_combos', JSON.stringify(comboList));
-        setCombos(comboList);
       }
       setIsModalOpen(false);
     } catch (err) {
@@ -330,46 +319,39 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (activeTab === 'recommendations') {
       const confirmed = window.confirm('Haqiqatdan ham ushbu tavfsiyani o\'chirmoqchimisiz?');
       if (confirmed) {
-        setRecommendations(prev => {
-          const newList = prev.filter(i => i._id !== id);
-          localStorage.setItem('gopizza_recommendations', JSON.stringify(newList));
-          return newList;
-        });
+        try {
+          await deleteDoc(doc(db, 'recommendations', id.toString()));
+          setRecommendations(prev => prev.filter(i => i._id !== id));
+        } catch (err) { console.error(err); }
       }
       return;
     }
 
     const confirmed = window.confirm('Haqiqatdan ham ushbu elementni o\'chirmoqchimisiz?');
     if (confirmed) {
-      if (activeTab === 'menu') {
-        const savedMenu = localStorage.getItem('gopizza_menu');
-        let menuList = savedMenu ? JSON.parse(savedMenu) : [];
-        menuList = menuList.filter(item => item._id !== id);
-        localStorage.setItem('gopizza_menu', JSON.stringify(menuList));
-        setItems(menuList);
-      } else {
-        const savedCombos = localStorage.getItem('gopizza_combos');
-        let comboList = savedCombos ? JSON.parse(savedCombos) : [];
-        comboList = comboList.filter(c => c._id !== id);
-        localStorage.setItem('gopizza_combos', JSON.stringify(comboList));
-        setCombos(comboList);
-      }
+      try {
+        if (activeTab === 'menu') {
+          await deleteDoc(doc(db, 'menu', id.toString()));
+          setItems(prev => prev.filter(item => item._id !== id));
+        } else {
+          await deleteDoc(doc(db, 'combos', id.toString()));
+          setCombos(prev => prev.filter(c => c._id !== id));
+        }
+      } catch (err) { console.error(err); }
     }
   };
 
   const handleExportToFile = () => {
     if (activeTab === 'menu') {
-      const savedMenu = localStorage.getItem('gopizza_menu');
-      const menuList = savedMenu ? JSON.parse(savedMenu) : staticMenuData;
+      const menuList = items && items.length > 0 ? items : staticMenuData;
       const fileContent = `export const staticMenuData = ${JSON.stringify(menuList, null, 2)};`;
       downloadFile(fileContent, 'menuData.js');
     } else {
-      const savedCombos = localStorage.getItem('gopizza_combos');
-      const comboList = savedCombos ? JSON.parse(savedCombos) : staticComboData;
+      const comboList = combos && combos.length > 0 ? combos : staticComboData;
       const fileContent = `export const staticComboData = ${JSON.stringify(comboList, null, 2)};`;
       downloadFile(fileContent, 'comboData.js');
     }
@@ -388,16 +370,27 @@ export default function AdminDashboard() {
     alert(`✅ ${filename} yuklab olindi!\n\nBu faylni src/data/ papkasiga qo'ying.`);
   };
 
-  const handleReloadStatic = () => {
+  const handleReloadStatic = async () => {
     if (window.confirm('Statik ma\'lumotlarni qayta yuklashni xohlaysizmi? Hozirgi o\'zgarishlar o\'chib ketadi!')) {
-      if (activeTab === 'menu') {
-        localStorage.setItem('gopizza_menu', JSON.stringify(staticMenuData));
-        setItems(staticMenuData);
-      } else {
-        localStorage.setItem('gopizza_combos', JSON.stringify(staticComboData));
-        setCombos(staticComboData);
-      }
-      alert('✅ Statik ma\'lumotlar muvaffaqiyatli qayta yuklandi!');
+      setLoading(true);
+      try {
+        const batch = writeBatch(db);
+        if (activeTab === 'menu') {
+          const snap = await getDocs(collection(db, 'menu'));
+          snap.docs.forEach(d => batch.delete(d.ref));
+          staticMenuData.forEach(item => batch.set(doc(db, 'menu', item._id.toString()), item));
+          await batch.commit();
+          setItems(staticMenuData);
+        } else {
+          const snap = await getDocs(collection(db, 'combos'));
+          snap.docs.forEach(d => batch.delete(d.ref));
+          staticComboData.forEach(item => batch.set(doc(db, 'combos', item._id.toString()), item));
+          await batch.commit();
+          setCombos(staticComboData);
+        }
+        alert('✅ Statik ma\'lumotlar muvaffaqiyatli qayta yuklandi!');
+      } catch (err) { console.error(err); }
+      setLoading(false);
     }
   };
 
