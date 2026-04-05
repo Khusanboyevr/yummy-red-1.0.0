@@ -43,8 +43,8 @@ export default function Contact() {
 
       // 2. EmailJS ga ham yuborishga urinib ko'ramiz (agar to'g'irlangan bo'lsa)
       try {
-        await emailjs.sendForm('service_5qyp41r', 'template_loplmwg', bookingFormRef.current, {
-          publicKey: 'fHkcfXCt8dpYTXU4S',
+        await emailjs.sendForm('service_w8j727s', 'template_twe58of', bookingFormRef.current, {
+          publicKey: 'TgLn9UjWKJ45Tz90M',
         });
       } catch (err) {
         console.warn('EmailJS error (proceeding with Telegram):', err);
