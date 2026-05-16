@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { ShoppingCart, Loader2 } from 'lucide-react';
 import { staticMenuData } from '../data/menuData';
+import { staticRecData } from '../data/recData';
 import { getRestaurantStatus } from '../utils/businessHours';
 import ClosedOverlay from '../components/ClosedOverlay';
 import RecommendationModal from '../components/RecommendationModal';
@@ -57,6 +58,7 @@ export default function Menu() {
         setMenuItems(items);
       } catch (err) {
         console.error(err);
+        localStorage.setItem('gopizza_recommendations', JSON.stringify(staticRecData));
         const items = staticMenuData.map(item => {
           if (item.variants && item.variants.length > 0) {
             return {

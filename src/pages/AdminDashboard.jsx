@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Plus, Edit, Trash2, Search, X, Loader2, Download, RefreshCw, Layers, List, ThumbsUp, Link2 } from 'lucide-react';
 import { staticMenuData } from '../data/menuData';
 import { staticComboData } from '../data/comboData';
+import { staticRecData } from '../data/recData';
 import { db } from '../firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
@@ -100,7 +101,11 @@ export default function AdminDashboard() {
       const recsSnap = await getDocs(collection(db, 'recommendations'));
       setRecommendations(recsSnap.docs.map(d => d.data()));
     } catch (err) {
-      console.error(err);
+      console.error("Firebase fetch error:", err);
+      // Fallback to static data on error (e.g. Missing permissions)
+      setItems(staticMenuData);
+      setCombos(staticComboData);
+      setRecommendations(staticRecData);
     }
     setLoading(false);
   };
@@ -350,10 +355,14 @@ export default function AdminDashboard() {
       const menuList = items && items.length > 0 ? items : staticMenuData;
       const fileContent = `export const staticMenuData = ${JSON.stringify(menuList, null, 2)};`;
       downloadFile(fileContent, 'menuData.js');
-    } else {
+    } else if (activeTab === 'combos') {
       const comboList = combos && combos.length > 0 ? combos : staticComboData;
       const fileContent = `export const staticComboData = ${JSON.stringify(comboList, null, 2)};`;
       downloadFile(fileContent, 'comboData.js');
+    } else if (activeTab === 'recommendations') {
+      const recList = recommendations && recommendations.length > 0 ? recommendations : staticRecData;
+      const fileContent = `export const staticRecData = ${JSON.stringify(recList, null, 2)};`;
+      downloadFile(fileContent, 'recData.js');
     }
   };
 
@@ -381,12 +390,18 @@ export default function AdminDashboard() {
           staticMenuData.forEach(item => batch.set(doc(db, 'menu', item._id.toString()), item));
           await batch.commit();
           setItems(staticMenuData);
-        } else {
+        } else if (activeTab === 'combos') {
           const snap = await getDocs(collection(db, 'combos'));
           snap.docs.forEach(d => batch.delete(d.ref));
           staticComboData.forEach(item => batch.set(doc(db, 'combos', item._id.toString()), item));
           await batch.commit();
           setCombos(staticComboData);
+        } else if (activeTab === 'recommendations') {
+          const snap = await getDocs(collection(db, 'recommendations'));
+          snap.docs.forEach(d => batch.delete(d.ref));
+          staticRecData.forEach(item => batch.set(doc(db, 'recommendations', item._id.toString()), item));
+          await batch.commit();
+          setRecommendations(staticRecData);
         }
         alert('✅ Statik ma\'lumotlar muvaffaqiyatli qayta yuklandi!');
       } catch (err) { console.error(err); }
